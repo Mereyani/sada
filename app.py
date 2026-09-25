@@ -20,7 +20,7 @@ from fnmatch import fnmatch
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
-VERSION = "1.0.1"
+VERSION = "1.0.2"
 WEB = Path(getattr(sys, "_MEIPASS", Path(__file__).parent)) / "web"
 # Downloaded/uploaded media lives here only while a job runs. Named per process and created
 # lazily, so child processes (model downloads) never create stray folders.

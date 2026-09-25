@@ -50,6 +50,11 @@ def main():
                 time.sleep(0.5)
         else:
             raise AssertionError("app did not start")
+        # the UI files are bundled and served (index + the model dropdown, styles, script)
+        page = urllib.request.urlopen(f"http://127.0.0.1:{port}/", timeout=10).read().decode()
+        assert '<select id="model"' in page and "app.js" in page, "UI not bundled"
+        for asset in ("app.js", "app.css", "logo.svg"):
+            assert urllib.request.urlopen(f"http://127.0.0.1:{port}/{asset}", timeout=10).status == 200
         print("info:", info["ram_gb"], "GB,", info["threads"], "threads, gpu:", info["gpu"], "recommended:", info["recommended"])
         import psutil
         assert abs(psutil.virtual_memory().total / 2**30 - info["ram_gb"]) < 0.2, "RAM readout is wrong"

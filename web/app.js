@@ -7,7 +7,7 @@ const I18N = {
     linkPh: "Paste a YouTube, TikTok, Instagram, X… link", paste: "Paste",
     linkHint: "Works with 1,000+ sites. Only the audio is downloaded.",
     dropTitle: "Drop a video or audio file", dropSub: "or click to browse · MP4, MKV, MOV, MP3, WAV, M4A, OGG…",
-    model: "Model", recommended: "Recommended", ready: "Downloaded", heavy: "Heavy for this device",
+    model: "Model", recommended: "Recommended", ready: "Downloaded", heavy: "Heavy for this PC",
     oneTime: "{size} · one-time download", accuracy: "Accuracy", speed: "Speed",
     ramGB: "{ram} GB RAM", ramUnknown: "RAM unknown", threadsN: "{n} CPU threads", runsOn: "runs on {hw}", gpu: "NVIDIA GPU", cpu: "CPU",
     stop: "Stop", stopping: "Stopping…", fetch: "Downloading model",
@@ -19,7 +19,7 @@ const I18N = {
     "m.large-v3-turbo": "Near-best accuracy, ~6× faster than Large",
     "m.large-v3": "Maximum accuracy, slowest",
     spoken: "Spoken language", auto: "Auto-detect", output: "Output",
-    transcribe: "Transcript (original language)", translate: "Translate to English",
+    transcribe: "Original language", translate: "Translate to English",
     start: "Start transcription", cancel: "Cancel", new: "New transcription",
     emptyTitle: "Your transcript will appear here",
     emptyBody: "Add a link or a file, choose a model and press start.",
@@ -53,7 +53,7 @@ const I18N = {
     "m.large-v3-turbo": "دقة شبه قصوى وأسرع بـ 6 مرات من Large",
     "m.large-v3": "أعلى دقة ممكنة، والأبطأ",
     spoken: "لغة الكلام", auto: "كشف تلقائي", output: "الناتج",
-    transcribe: "تفريغ (بلغة المقطع)", translate: "ترجمة إلى الإنجليزية",
+    transcribe: "بلغة المقطع", translate: "ترجمة إلى الإنجليزية",
     start: "ابدأ التفريغ", cancel: "إلغاء", new: "تفريغ جديد",
     emptyTitle: "سيظهر النص المُفرَّغ هنا",
     emptyBody: "أضف رابطاً أو ملفاً، اختر النموذج، ثم اضغط ابدأ.",
@@ -87,7 +87,7 @@ const I18N = {
     "m.large-v3-turbo": "En iyiye yakın doğruluk, Large'dan ~6× hızlı",
     "m.large-v3": "En yüksek doğruluk, en yavaş",
     spoken: "Konuşma dili", auto: "Otomatik algıla", output: "Çıktı",
-    transcribe: "Metin (orijinal dil)", translate: "İngilizceye çevir",
+    transcribe: "Orijinal dil", translate: "İngilizceye çevir",
     start: "Yazıya dökmeyi başlat", cancel: "İptal", new: "Yeni döküm",
     emptyTitle: "Metniniz burada görünecek",
     emptyBody: "Bir bağlantı veya dosya ekleyin, model seçin ve başlatın.",
@@ -190,25 +190,24 @@ function meter(label, n, cls) {
 
 function renderModels() {
   const i = state.info;
-  $("models").innerHTML = i.models.map((m) => {
-    const badges = [
-      m.id === i.recommended ? `<span class="badge">${t("recommended")}</span>` : "",
-      m.cached ? `<span class="badge ok">${t("ready")}</span>` : "",
-      !i.gpu && i.ram_gb && m.ram_gb * 2 > i.ram_gb ? `<span class="badge warn">${t("heavy")}</span>` : "",
-    ].join("");
-    return `<button class="model" role="radio" aria-checked="${m.id === state.model}" data-id="${m.id}" ${state.busy ? "disabled" : ""}>
-      <span class="radio" aria-hidden="true"></span>
-      <span class="model-name">${MODEL_NAMES[m.id]} ${badges}</span>
-      <span class="model-side">${meter(t("accuracy"), m.quality, "")}${meter(t("speed"), m.speed, "speed")}
-        <span>${m.cached ? fmtSize(m.size_mb) : t("oneTime", { size: fmtSize(m.size_mb) })}</span></span>
-      <span class="model-desc">${t("m." + m.id)}</span>
-    </button>`;
-  }).join("");
-  $("models").querySelectorAll(".model").forEach((b) => {
-    b.onclick = () => { state.model = b.dataset.id; store.set("sada.model", state.model); renderModels(); };
-  });
+  const heavy = (m) => !i.gpu && i.ram_gb && m.ram_gb * 2 > i.ram_gb;
+  // Native <select>: keyboard, screen readers and the OS look come for free. Each option
+  // carries the facts needed to choose; the line below it details the selected model.
+  // ✓ = downloaded (spelled out in the badge under the list); kept short so it never truncates
+  $("model").innerHTML = i.models.map((m) => `<option value="${m.id}">${[
+    `${MODEL_NAMES[m.id]} — ${fmtSize(m.size_mb)}${m.cached ? " ✓" : ""}`,
+    m.id === i.recommended ? t("recommended") : "",
+    heavy(m) ? t("heavy") : "",
+  ].filter(Boolean).join(" · ")}</option>`).join("");
+  $("model").value = state.model;
+  const m = i.models.find((x) => x.id === state.model);
+  $("modelInfo").innerHTML = `<p>${t("m." + m.id)}</p>
+    <div class="model-meta">${meter(t("accuracy"), m.quality, "")}${meter(t("speed"), m.speed, "speed")}
+      ${m.cached ? `<span class="badge ok">${t("ready")}</span>` : `<span>${t("oneTime", { size: fmtSize(m.size_mb) })}</span>`}
+      ${heavy(m) ? `<span class="badge warn">${t("heavy")}</span>` : ""}</div>`;
   renderStorage();
 }
+$("model").onchange = (e) => { state.model = e.target.value; store.set("sada.model", state.model); renderModels(); };
 
 function renderStorage() {
   const onDisk = state.info.models.filter((m) => m.disk_mb > 0);

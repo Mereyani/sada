@@ -58,10 +58,11 @@
 
     <section>
       <div class="sec-head">
-        <h2 data-i18n="model"></h2>
+        <h2 id="modelLabel" data-i18n="model"></h2>
         <span class="device" id="device"></span>
       </div>
-      <div class="models" id="models" role="radiogroup"></div>
+      <select id="model" aria-labelledby="modelLabel"></select>
+      <div class="model-info" id="modelInfo" aria-live="polite"></div>
       <details class="storage" id="storage" hidden>
         <summary id="storageSum"></summary>
         <p class="hint" data-i18n="storageHint"></p>
