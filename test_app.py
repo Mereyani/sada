@@ -1,4 +1,5 @@
 """Smoke checks: python test_app.py  (no model download, no network)."""
+import json
 import os
 import tempfile
 import threading
@@ -17,6 +18,12 @@ def req(port, path, method="GET", headers=None, host="127.0.0.1", body=None):
             return res.status
     except urllib.error.HTTPError as e:
         return e.code
+
+
+def get(port, path):
+    r = urllib.request.Request(f"http://127.0.0.1:{port}{path}", headers={"Host": f"127.0.0.1:{port}"})
+    with urllib.request.urlopen(r) as res:
+        return res.read()
 
 
 if __name__ == "__main__":
@@ -87,4 +94,44 @@ if __name__ == "__main__":
         assert app.disk_bytes("base") == 5000  # now the only owner
     finally:
         hfc.HF_HUB_CACHE = real_cache
+
+    # history: saved to disk when a job ends, listed newest first, words editable, timestamps not
+    os.environ["SADA_DATA"] = tempfile.mkdtemp()
+    job = {"id": "a1b2c3d4e5f6", "title": "clip", "url": None, "model": "small", "language": "ar",
+           "language_prob": 0.99, "duration": 4.0, "status": "done",
+           "segments": [{"start": 0.0, "end": 2.0, "text": "مرحبا"}, {"start": 2.0, "end": 4.0, "text": "<b>x</b>"}]}
+    app.save_history(job)
+    listed = json.loads(get(port, "/api/history"))
+    assert [h["id"] for h in listed] == ["a1b2c3d4e5f6"] and listed[0]["words"] == 2 and not listed[0]["partial"]
+    edit = json.dumps({"texts": ["مرحباً بكم", "<b>x</b>"]}).encode()
+    assert req(port, "/api/history/a1b2c3d4e5f6", "POST", {"X-Sada": "1"}, body=edit) == 200
+    h = json.loads(get(port, "/api/history/a1b2c3d4e5f6"))
+    assert h["segments"][0] == {"start": 0.0, "end": 2.0, "text": "مرحباً بكم"} and h["edited"]
+    wrong = json.dumps({"texts": ["only one"]}).encode()
+    assert req(port, "/api/history/a1b2c3d4e5f6", "POST", {"X-Sada": "1"}, body=wrong) == 400
+    assert req(port, "/api/history/..%2F..%2Fx", "GET") == 404            # ids are validated
+    assert req(port, "/api/history/000000000000", "POST", {"X-Sada": "1"}, body=edit) == 404
+    assert req(port, "/api/history/a1b2c3d4e5f6/delete", "POST") == 403  # needs the header
+    assert req(port, "/api/history/a1b2c3d4e5f6/delete", "POST", {"X-Sada": "1"}) == 200
+    assert json.loads(get(port, "/api/history")) == []
+
+    # preferences persist on disk; unknown keys and odd values are ignored
+    body = json.dumps({"sada.lang": "tr", "sada.theme": "dark", "evil": "x", "sada.model": 5}).encode()
+    assert req(port, "/api/settings", "POST", {"X-Sada": "1"}, body=body) == 200
+    assert json.loads(get(port, "/api/settings")) == {"sada.lang": "tr", "sada.theme": "dark"}
+    assert req(port, "/api/settings", "POST", {"X-Sada": "1"}, body=b"[1]") == 400
+
+    # many saves at the same moment (the UI does this) must never corrupt the file or lose a key
+    codes = []
+    def hit(k, v):
+        codes.append(req(port, "/api/settings", "POST", {"X-Sada": "1"}, body=json.dumps({k: v}).encode()))
+    threads = [threading.Thread(target=hit, args=(k, f"{k}-{i}"))
+               for i in range(20) for k in ("sada.lang", "sada.theme", "sada.model")]
+    for th in threads:
+        th.start()
+    for th in threads:
+        th.join()
+    final = json.loads(get(port, "/api/settings"))  # raises if the file is corrupt
+    assert codes.count(200) == 60 and set(final) == {"sada.lang", "sada.theme", "sada.model"}, (codes, final)
+    assert not list((app.data_dir()).glob("*.tmp"))
     print("ok")

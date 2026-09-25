@@ -21,9 +21,10 @@ Paste a link from YouTube, TikTok, Instagram, X, Facebook… or drop any video/a
 - **100% local**: no API and no account. Audio is transcribed on your machine with [faster-whisper](https://github.com/SYSTRAN/faster-whisper), a CTranslate2 build of OpenAI Whisper that is up to 4× faster and int8-quantized for normal CPUs.
 - **Links from 1,000+ sites** via [yt-dlp](https://github.com/yt-dlp/yt-dlp). Only the audio stream is downloaded.
 - **Files**: MP4, MKV, MOV, WEBM, MP3, WAV, M4A, OGG, FLAC… Decoding uses the bundled FFmpeg (PyAV), so there is nothing extra to install.
-- **Automatic language detection** across the 99 Whisper languages, or pick a language yourself. There is also an option to translate the speech into English.
+- **Automatic language detection** across the 99 Whisper languages, or pick a language yourself.
 - **Choose a model for your hardware**: the app reads your RAM/GPU and recommends one.
 - **Live transcript** with timestamps. Export to **TXT, SRT, VTT, JSON** or copy to the clipboard.
+- **History on your computer**: every transcript is saved automatically (also one you stopped halfway), so closing the app loses nothing. Open it later to **search** it or **fix words** by editing the lines in place. Timestamps stay intact, so exported subtitles stay in sync.
 - Voice-activity detection skips silence, which makes transcription faster and cuts hallucinations.
 - **Stop at any time**, even halfway through a multi-GB model download. Settings stay locked while a job runs.
 - **Manage models**: see how much space each downloaded model really uses and delete it with one click. Downloaded or uploaded media is temporary and removed after each job.
@@ -50,6 +51,8 @@ Get the latest build for your OS from **[Releases](https://github.com/Mereyani/s
 ### How releases are tested
 Every release is built on GitHub Actions for Windows, macOS (Apple Silicon and Intel) and Linux, and the **built app itself** is then tested on each of them ([smoke_frozen.py](smoke_frozen.py)). Starting from an empty model cache, the test checks the following, and nothing is published unless all of it passes:
 - the model downloads on first use and a real speech clip is transcribed, with the language detected;
+- the transcript is saved to the history on disk, and an edit is saved;
+- language, theme and model choice survive quitting and relaunching the app;
 - Stop halts a model download mid-way;
 - deleting a model frees its disk space;
 - the RAM and thread counts match an independent reading from `psutil`.
@@ -78,9 +81,10 @@ Build a standalone app: `pip install pyinstaller pillow && python build.py`. Pus
 **صدى** تطبيق سطح مكتب لتفريغ الصوت إلى نص **على جهازك بالكامل**، بلا API وبلا حساب. يعمل على ويندوز وماك ولينكس.
 
 - الصق **رابطاً** من يوتيوب أو تيك توك أو إنستغرام أو إكس أو فيسبوك أو أكثر من 1000 موقع آخر، ويُحمَّل الصوت فقط. أو **ارفع ملف فيديو أو صوت** مباشرةً.
-- **كشف تلقائي للغة** من بين 99 لغة، أو اختر اللغة بنفسك. ويمكن أيضاً ترجمة الكلام إلى الإنجليزية.
+- **كشف تلقائي للغة** من بين 99 لغة، أو اختر اللغة بنفسك.
 - **اختر النموذج المناسب لجهازك**: من Tiny الخفيف جداً إلى Large v3 الأعلى دقة، والتطبيق يقترح الأنسب حسب الذاكرة وكرت الشاشة.
 - نص مباشر مع التوقيت، وتصدير بصيغ **TXT وSRT وVTT وJSON**.
+- **سجل محفوظ على جهازك**: يُحفظ كل تفريغ تلقائياً، حتى الذي أوقفته في منتصفه، فلا يضيع شيء عند إغلاق التطبيق. يمكنك فتحه لاحقاً، و**البحث** فيه، و**تصحيح الكلمات** بتعديل الأسطر مباشرة دون أن يتغير التوقيت.
 - **زر إيقاف يعمل في أي لحظة**، حتى في منتصف تنزيل نموذج حجمه عدة غيغابايت. وتبقى الإعدادات مقفلة أثناء التفريغ.
 - **إدارة النماذج**: ترى المساحة الحقيقية لكل نموذج وتحذفه بضغطة. أما ملفات الصوت والفيديو فمؤقتة وتُحذف بعد كل مهمة.
 - سطر الجهاز (الذاكرة وخيوط المعالج والمعالج أو كرت الشاشة) يُقرأ من نظام التشغيل مباشرة، وليس رقماً ثابتاً.
@@ -98,7 +102,8 @@ Build a standalone app: `pip install pyinstaller pillow && python build.py`. Pus
 **Sada**, konuşmayı **tamamen bilgisayarınızda** metne çeviren bir masaüstü uygulamasıdır: API yok, hesap yok. Windows, macOS ve Linux'ta çalışır.
 
 - YouTube, TikTok, Instagram, X, Facebook veya 1.000'den fazla siteden **bağlantı** yapıştırın ya da **video/ses dosyası** bırakın.
-- 99 dil arasından **otomatik dil algılama**, ayrıca İngilizceye çeviri seçeneği.
+- 99 dil arasından **otomatik dil algılama**.
+- Bilgisayarınızda saklanan **geçmiş**: her döküm otomatik kaydedilir; sonradan açıp **arayabilir** ve satırları düzenleyerek **düzeltebilirsiniz**.
 - Cihazınıza göre model seçimi (Tiny → Large v3). Uygulama en uygun modeli önerir.
 - Zaman damgalı canlı metin; **TXT, SRT, VTT, JSON** olarak dışa aktarma.
 - Arapça, İngilizce ve Türkçe arayüz; koyu ve açık tema.

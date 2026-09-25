@@ -7,6 +7,7 @@ import json
 import multiprocessing
 import os
 import queue
+import re
 import shutil
 import socket
 import sys
@@ -15,12 +16,13 @@ import threading
 import time
 import uuid
 import webbrowser
+from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from fnmatch import fnmatch
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
-VERSION = "1.0.2"
+VERSION = "1.0.3"
 WEB = Path(getattr(sys, "_MEIPASS", Path(__file__).parent)) / "web"
 # Downloaded/uploaded media lives here only while a job runs. Named per process and created
 # lazily, so child processes (model downloads) never create stray folders.
@@ -53,6 +55,17 @@ def clean_stale_tmp(now=None):
                 shutil.rmtree(d, ignore_errors=True)
         except OSError:
             pass
+
+
+def data_dir():
+    """Per-user app data (transcript history, the window's saved preferences), in each OS's usual place."""
+    if os.environ.get("SADA_DATA"):
+        return Path(os.environ["SADA_DATA"])
+    if sys.platform == "win32":
+        return Path(os.environ.get("APPDATA") or Path.home()) / "Sada"
+    if sys.platform == "darwin":
+        return Path.home() / "Library" / "Application Support" / "Sada"
+    return Path(os.environ.get("XDG_DATA_HOME") or Path.home() / ".local" / "share") / "Sada"
 
 
 def total_ram_gb():
@@ -284,7 +297,6 @@ def run(job):
     segments, info = model.transcribe(
         job["file"],
         language=job["language"] or None,
-        task=job["task"],
         beam_size=5,
         vad_filter=True,  # skips silence: faster and far fewer hallucinations
     )
@@ -315,6 +327,103 @@ def worker():
         finally:
             if job.get("file"):
                 Path(job["file"]).unlink(missing_ok=True)
+            if job["segments"]:  # keep finished and stopped-midway transcripts
+                try:
+                    save_history(job)
+                except OSError:
+                    pass
+
+
+# ---------------------------------------------------------------- history (one JSON file per transcript)
+
+def now_iso():
+    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+def history_file(hid):
+    if not re.fullmatch(r"[0-9a-f]{12}", hid or ""):  # ids are ours; nothing else touches the disk
+        raise ValueError("bad id")
+    return data_dir() / "history" / f"{hid}.json"
+
+
+# Requests run on parallel threads (the UI can save language, theme and model at once):
+# every read-modify-write of a file on disk goes through this lock.
+disk_lock = threading.RLock()
+
+
+def write_json(path, obj):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp_path = tempfile.mkstemp(dir=path.parent, suffix=".tmp")  # unique per write
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
+        json.dump(obj, f, ensure_ascii=False)
+    os.replace(tmp_path, path)  # atomic: a crash never leaves a half-written file
+
+
+def save_history(job):
+    with disk_lock:
+        _save_history(job)
+
+
+def _save_history(job):
+    write_json(history_file(job["id"]), {
+        "id": job["id"], "title": job["title"], "source": job["url"], "model": job["model"],
+        "language": job["language"], "language_prob": job["language_prob"], "duration": job["duration"],
+        "created": now_iso(), "partial": job["status"] != "done", "segments": job["segments"],
+    })
+
+
+def list_history():
+    out = []
+    for f in (data_dir() / "history").glob("*.json"):
+        try:
+            h = json.loads(f.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        text = " ".join(seg["text"] for seg in h["segments"])
+        out.append({**{k: h.get(k) for k in ("id", "title", "source", "model", "language", "duration",
+                                             "created", "partial")},
+                    "words": len(text.split()), "preview": text[:160]})
+    return sorted(out, key=lambda h: h["created"] or "", reverse=True)
+
+
+# UI preferences live on disk: the window's browser storage is per origin, and the port
+# (part of the origin) is picked fresh on every launch.
+SETTINGS = {"sada.lang", "sada.theme", "sada.model"}
+
+
+def read_settings():
+    try:
+        return json.loads((data_dir() / "settings.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+
+
+def update_settings(changes):
+    if not isinstance(changes, dict):
+        raise ValueError("expected an object")
+    with disk_lock:
+        merged = {**read_settings(), **{k: v for k, v in changes.items()
+                                        if k in SETTINGS and isinstance(v, str) and len(v) <= 40}}
+        write_json(data_dir() / "settings.json", merged)
+
+
+def read_history(hid):
+    return json.loads(history_file(hid).read_text(encoding="utf-8"))
+
+
+def edit_history(hid, texts):
+    with disk_lock:
+        _edit_history(hid, texts)
+
+
+def _edit_history(hid, texts):
+    h = read_history(hid)
+    if not isinstance(texts, list) or len(texts) != len(h["segments"]) or not all(isinstance(x, str) for x in texts):
+        raise ValueError("segments don't match")
+    for seg, text in zip(h["segments"], texts):  # only the words change, never the timestamps
+        seg["text"] = text
+    h["edited"] = now_iso()
+    write_json(history_file(hid), h)
 
 
 def new_job(opts, url=None, file=None, title=None):
@@ -324,7 +433,6 @@ def new_job(opts, url=None, file=None, title=None):
     job = {
         "id": uuid.uuid4().hex[:12], "url": url, "file": file, "title": title or url,
         "model": model, "language": opts.get("language") or None,
-        "task": "translate" if opts.get("task") == "translate" else "transcribe",
         "status": "queued", "stage": "queued", "progress": 0.0, "segments": [],
         "language_prob": None, "duration": None, "error": None, "cancel": False,
         "fetch": not is_cached(model),  # the model will be downloaded first
@@ -378,6 +486,15 @@ class Handler(BaseHTTPRequestHandler):
         parts = u.path.strip("/").split("/")
         if u.path == "/api/info":
             return self.send(200, system_info())
+        if u.path == "/api/history":
+            return self.send(200, list_history())
+        if u.path == "/api/settings":
+            return self.send(200, read_settings())
+        if len(parts) == 3 and parts[:2] == ["api", "history"]:
+            try:
+                return self.send(200, read_history(parts[2]))
+            except (ValueError, OSError):
+                return self.send(404, {"error": "not found"})
         if len(parts) == 3 and parts[:2] == ["api", "jobs"]:
             job = jobs.get(parts[2])
             if not job:
@@ -420,6 +537,18 @@ class Handler(BaseHTTPRequestHandler):
                         out.write(chunk)
                         left -= len(chunk)
                 return self.send(200, public(new_job(opts, file=str(dest), title=name)))
+            if u.path == "/api/settings":
+                update_settings(json.loads(self.rfile.read(length) or b"{}"))
+                return self.send(200, {"ok": True})
+            if len(parts) == 3 and parts[:2] == ["api", "history"]:
+                try:
+                    edit_history(parts[2], json.loads(self.rfile.read(length) or b"{}").get("texts"))
+                except FileNotFoundError:
+                    return self.send(404, {"error": "not found"})
+                return self.send(200, {"ok": True})
+            if len(parts) == 4 and parts[:2] == ["api", "history"] and parts[3] == "delete":
+                history_file(parts[2]).unlink(missing_ok=True)
+                return self.send(200, {"ok": True})
             if len(parts) == 4 and parts[:2] == ["api", "models"] and parts[3] == "delete":
                 if parts[2] not in MODEL_IDS:
                     return self.send(404, {"error": "not found"})

@@ -70,17 +70,10 @@
       </details>
     </section>
 
-    <section class="row2">
+    <section>
       <label class="field">
         <span data-i18n="spoken"></span>
         <select id="language"></select>
-      </label>
-      <label class="field">
-        <span data-i18n="output"></span>
-        <select id="task">
-          <option value="transcribe" data-i18n="transcribe"></option>
-          <option value="translate" data-i18n="translate"></option>
-        </select>
       </label>
     </section>
 
@@ -94,13 +87,22 @@
   </aside>
 
   <section class="panel main" aria-live="polite">
-    <div class="empty" id="empty">
-      <div class="wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
-      <h3 data-i18n="emptyTitle"></h3>
-      <p data-i18n="emptyBody"></p>
-      <ul class="feats">
-        <li data-i18n="f1"></li><li data-i18n="f2"></li><li data-i18n="f3"></li>
-      </ul>
+    <div class="home" id="empty">
+      <div class="empty" id="intro">
+        <div class="wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <h3 data-i18n="emptyTitle"></h3>
+        <p data-i18n="emptyBody"></p>
+        <ul class="feats">
+          <li data-i18n="f1"></li><li data-i18n="f2"></li><li data-i18n="f3"></li>
+        </ul>
+      </div>
+      <section class="history" id="history" hidden>
+        <div class="history-head">
+          <h3 data-i18n="history"></h3>
+          <span id="historyHint" data-i18n="historyHint"></span>
+        </div>
+        <ul id="historyList"></ul>
+      </section>
     </div>
 
     <div class="job" id="job" hidden>
@@ -123,7 +125,13 @@
 
       <div class="toolbar" id="toolbar" hidden>
         <label class="switch"><input type="checkbox" id="tsToggle" checked><span></span><em data-i18n="timestamps"></em></label>
+        <div class="search">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input id="search" type="search" autocomplete="off" data-i18n-ph="searchPh" data-i18n-label="searchPh">
+          <span id="searchCount" aria-live="polite"></span>
+        </div>
         <div class="exports">
+          <button class="ghost" id="editBtn" aria-pressed="false" data-i18n="edit"></button>
           <button class="ghost" id="copyBtn" data-i18n="copy"></button>
           <button class="ghost" data-fmt="txt">TXT</button>
           <button class="ghost" data-fmt="srt">SRT</button>

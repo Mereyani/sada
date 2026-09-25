@@ -18,8 +18,10 @@ const I18N = {
     "m.small": "Balanced — great for most laptops",
     "m.large-v3-turbo": "Near-best accuracy, ~6× faster than Large",
     "m.large-v3": "Maximum accuracy, slowest",
-    spoken: "Spoken language", auto: "Auto-detect", output: "Output",
-    transcribe: "Original language", translate: "Translate to English",
+    spoken: "Spoken language", auto: "Auto-detect",
+    history: "Recent transcripts", historyHint: "Saved on this computer. Open one to read, edit or export it.",
+    back: "All transcripts", edit: "Edit", doneEdit: "Done editing", editHint: "Click any line to fix a word. Changes save automatically.",
+    searchPh: "Search the transcript", matches: { one: "1 match", other: "{n} matches" }, noMatch: "Not found", saveFail: "Couldn't save the edit",
     start: "Start transcription", cancel: "Cancel", new: "New transcription",
     emptyTitle: "Your transcript will appear here",
     emptyBody: "Add a link or a file, choose a model and press start.",
@@ -29,7 +31,7 @@ const I18N = {
     queued: "Waiting for the previous job…", download: "Downloading audio", load: "Loading model",
     loadFirst: "Downloading the model · {size} (first time only)…", transcribing: "Transcribing",
     done: "Done", cancelled: "Cancelled", failed: "Failed",
-    detected: "{lang} · {pct}%", segments: "{n} segments", words: "{n} words", segment1: "1 segment", word1: "1 word",
+    detected: "{lang} · {pct}%", segments: { one: "1 segment", other: "{n} segments" }, words: { one: "1 word", other: "{n} words" },
     timestamps: "Timestamps", copy: "Copy", copied: "Copied to clipboard", saved: "Saved",
     errUrl: "Please enter a valid link (https://…)", errFile: "Please choose a file first",
     errServer: "The local engine is not responding",
@@ -52,8 +54,10 @@ const I18N = {
     "m.small": "متوازن — ممتاز لمعظم الحواسيب",
     "m.large-v3-turbo": "دقة شبه قصوى وأسرع بـ 6 مرات من Large",
     "m.large-v3": "أعلى دقة ممكنة، والأبطأ",
-    spoken: "لغة الكلام", auto: "كشف تلقائي", output: "الناتج",
-    transcribe: "بلغة المقطع", translate: "ترجمة إلى الإنجليزية",
+    spoken: "لغة الكلام", auto: "كشف تلقائي",
+    history: "آخر التفريغات", historyHint: "محفوظة على جهازك. افتح أياً منها لقراءته أو تعديله أو تصديره.",
+    back: "كل التفريغات", edit: "تعديل", doneEdit: "إنهاء التعديل", editHint: "انقر أي سطر لتصحيح كلمة. تُحفظ التعديلات تلقائياً.",
+    searchPh: "ابحث في النص", matches: { one: "نتيجة واحدة", two: "نتيجتان", few: "{n} نتائج", many: "{n} نتيجة", other: "{n} نتيجة" }, noMatch: "لا نتائج", saveFail: "تعذّر حفظ التعديل",
     start: "ابدأ التفريغ", cancel: "إلغاء", new: "تفريغ جديد",
     emptyTitle: "سيظهر النص المُفرَّغ هنا",
     emptyBody: "أضف رابطاً أو ملفاً، اختر النموذج، ثم اضغط ابدأ.",
@@ -63,7 +67,8 @@ const I18N = {
     queued: "بانتظار انتهاء المهمة السابقة…", download: "تحميل الصوت", load: "تحميل النموذج",
     loadFirst: "تنزيل النموذج · {size} (للمرة الأولى فقط)…", transcribing: "التفريغ",
     done: "اكتمل", cancelled: "أُلغي", failed: "فشل",
-    detected: "{lang} · {pct}%", segments: "{n} مقطع", words: "{n} كلمة", segment1: "مقطع واحد", word1: "كلمة واحدة",
+    detected: "{lang} · {pct}%", segments: { one: "مقطع واحد", two: "مقطعان", few: "{n} مقاطع", many: "{n} مقطعاً", other: "{n} مقطع" },
+    words: { one: "كلمة واحدة", two: "كلمتان", few: "{n} كلمات", many: "{n} كلمة", other: "{n} كلمة" },
     timestamps: "التوقيت", copy: "نسخ", copied: "تم النسخ", saved: "تم الحفظ",
     errUrl: "أدخل رابطاً صحيحاً (https://…)", errFile: "اختر ملفاً أولاً",
     errServer: "المحرك المحلي لا يستجيب",
@@ -86,8 +91,10 @@ const I18N = {
     "m.small": "Dengeli — çoğu dizüstü için ideal",
     "m.large-v3-turbo": "En iyiye yakın doğruluk, Large'dan ~6× hızlı",
     "m.large-v3": "En yüksek doğruluk, en yavaş",
-    spoken: "Konuşma dili", auto: "Otomatik algıla", output: "Çıktı",
-    transcribe: "Orijinal dil", translate: "İngilizceye çevir",
+    spoken: "Konuşma dili", auto: "Otomatik algıla",
+    history: "Son dökümler", historyHint: "Bu bilgisayarda kayıtlı. Okumak, düzenlemek veya dışa aktarmak için birini açın.",
+    back: "Tüm dökümler", edit: "Düzenle", doneEdit: "Düzenlemeyi bitir", editHint: "Bir kelimeyi düzeltmek için herhangi bir satıra tıklayın. Değişiklikler otomatik kaydedilir.",
+    searchPh: "Metinde ara", matches: "{n} sonuç", noMatch: "Sonuç yok", saveFail: "Düzenleme kaydedilemedi",
     start: "Yazıya dökmeyi başlat", cancel: "İptal", new: "Yeni döküm",
     emptyTitle: "Metniniz burada görünecek",
     emptyBody: "Bir bağlantı veya dosya ekleyin, model seçin ve başlatın.",
@@ -97,7 +104,7 @@ const I18N = {
     queued: "Önceki işin bitmesi bekleniyor…", download: "Ses indiriliyor", load: "Model yükleniyor",
     loadFirst: "Model indiriliyor · {size} (yalnızca ilk sefer)…", transcribing: "Yazıya dökülüyor",
     done: "Tamamlandı", cancelled: "İptal edildi", failed: "Başarısız",
-    detected: "{lang} · %{pct}", segments: "{n} bölüm", words: "{n} kelime", segment1: "1 bölüm", word1: "1 kelime",
+    detected: "{lang} · %{pct}", segments: "{n} bölüm", words: "{n} kelime",
     timestamps: "Zaman damgaları", copy: "Kopyala", copied: "Panoya kopyalandı", saved: "Kaydedildi",
     errUrl: "Geçerli bir bağlantı girin (https://…)", errFile: "Önce bir dosya seçin",
     errServer: "Yerel motor yanıt vermiyor",
@@ -107,15 +114,28 @@ const I18N = {
 const MODEL_NAMES = { tiny: "Tiny", base: "Base", small: "Small", "large-v3-turbo": "Large v3 Turbo", "large-v3": "Large v3" };
 
 const $ = (id) => document.getElementById(id);
+// Preferences are saved by the local engine (settings.json in the app data folder), so they
+// survive restarts even though the window's own storage doesn't.
+const prefs = {};
 const store = {
-  get(k) { try { return localStorage.getItem(k); } catch { return null; } },
-  set(k, v) { try { localStorage.setItem(k, v); } catch { /* private mode */ } },
+  get(k) { return prefs[k] ?? null; },
+  set(k, v) {
+    prefs[k] = v;
+    api("/api/settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ [k]: v }) }).catch(() => {});
+  },
 };
-const state = { lang: "en", info: null, model: null, tab: "link", file: null, job: null, segs: [], timer: null, busy: false };
+const state = { lang: "en", info: null, model: null, tab: "link", file: null, job: null, segs: [], timer: null, busy: false,
+  history: null, editing: false, hit: -1, saveTimer: null };
 
 function t(key, vars = {}) {
   const s = I18N[state.lang][key] ?? I18N.en[key] ?? key;
   return s.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? "");
+}
+// Counted nouns: Arabic has separate forms for 1, 2, 3–10 and 11–99; Intl.PluralRules picks the category.
+function tn(key, n) {
+  const f = I18N[state.lang][key] ?? I18N.en[key];
+  const s = typeof f === "string" ? f : f[new Intl.PluralRules(state.lang).select(n)] ?? f.other;
+  return s.replace("{n}", n.toLocaleString(state.lang === "ar" ? "en" : state.lang));
 }
 function langName(code) {
   try { return new Intl.DisplayNames([state.lang], { type: "language" }).of(code === "jw" ? "jv" : code) || code; }
@@ -127,6 +147,11 @@ function fmtTime(sec, sep = ".", hours = false) {
   const pad = (n, w = 2) => String(n).padStart(w, "0");
   if (sep === null) return (h ? `${h}:${pad(m)}` : `${m}`) + `:${pad(s)}`;
   return `${hours || h ? pad(h) + ":" : ""}${pad(m)}:${pad(s)}${sep}${pad(ms % 1000, 3)}`;
+}
+const esc = (x) => String(x ?? "").replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+function fmtDate(iso) {
+  try { return new Intl.DateTimeFormat(state.lang, { dateStyle: "medium", timeStyle: "short" }).format(new Date(iso)); }
+  catch { return iso; }
 }
 function fmtSize(mb) { return mb >= 1000 ? `${(mb / 1000).toFixed(1)} GB` : `${mb} MB`; }
 function toast(msg) {
@@ -158,6 +183,8 @@ function applyLang(lang) {
   if (state.info) { renderDevice(); renderModels(); renderLanguages(); }
   renderStartBtn();
   if (state.job) renderJob(state.job);
+  if (state.history) renderHistory();
+  if (state.editing) $("editBtn").textContent = t("doneEdit");
 }
 
 function applyTheme(theme) {
@@ -304,7 +331,7 @@ function showFormError(msg) { $("formError").hidden = !msg; $("formError").textC
 /* ---------------- jobs ---------------- */
 
 async function start() {
-  const opts = { model: state.model, language: $("language").value, task: $("task").value };
+  const opts = { model: state.model, language: $("language").value };
   let job;
   try {
     if (state.tab === "link") {
@@ -323,10 +350,7 @@ async function start() {
     return showFormError(e.message || t("errServer"));
   }
   showFormError("");
-  state.job = job; state.segs = [];
-  $("transcript").innerHTML = "";
-  $("empty").hidden = true; $("job").hidden = false;
-  renderJob(job);
+  showJob(job, []);
   renderStartBtn();
   poll();
 }
@@ -343,7 +367,7 @@ async function poll() {
     state.job = job;
     renderJob(job);
     if (["queued", "running"].includes(job.status)) state.timer = setTimeout(poll, 600);
-    else { setBusy(false); loadInfo(); }
+    else { setBusy(false); loadInfo(); loadHistory(); }
   } catch {
     state.timer = setTimeout(poll, 1500);
   }
@@ -353,6 +377,7 @@ function renderJob(job) {
   const running = ["queued", "running"].includes(job.status);
   $("jobTitle").textContent = job.title || "";
   $("newBtn").hidden = running;
+  $("newBtn").textContent = job.history ? t("back") : t("new");
 
   const m = state.info?.models.find((x) => x.id === job.model);
   const steps = [...(job.url ? [["download", t("download")]] : []), ...(job.fetch ? [["fetch", t("fetch")]] : []),
@@ -385,10 +410,13 @@ function renderJob(job) {
     job.language ? `<span class="chip hl">${t("detected", { lang: langName(job.language), pct: Math.round((job.language_prob || 0) * 100) })}</span>` : "",
     job.duration ? `<span class="chip" dir="ltr">${fmtTime(job.duration, null)}</span>` : "",
     `<span class="chip">${MODEL_NAMES[job.model]}</span>`,
-    state.segs.length ? `<span class="chip">${t(state.segs.length === 1 ? "segment1" : "segments", { n: state.segs.length })} · ${t(words === 1 ? "word1" : "words", { n: words })}</span>` : "",
+    state.segs.length ? `<span class="chip">${tn("segments", state.segs.length)} · ${tn("words", words)}</span>` : "",
+    job.created ? `<span class="chip">${esc(fmtDate(job.created))}</span>` : "",
+    job.partial || job.status === "cancelled" ? `<span class="chip">${t("partial")}</span>` : "",
   ];
   $("chips").innerHTML = chips.join("");
   $("toolbar").hidden = !state.segs.length;
+  $("editBtn").hidden = running;  // a finished (or stopped) transcript is saved, so it can be edited
 
   const typing = $("transcript").querySelector(".typing");
   if (running && job.stage === "transcribe" && !typing) $("transcript").insertAdjacentHTML("beforeend", '<div class="typing"><i></i><i></i><i></i></div>');
@@ -405,6 +433,7 @@ function appendSegments(list) {
     state.segs.push(s);
     const row = document.createElement("div");
     row.className = "seg-row";
+    row.dataset.i = state.segs.length - 1;
     const time = document.createElement("time");
     time.textContent = fmtTime(s.start, null);
     const p = document.createElement("p");
@@ -417,11 +446,132 @@ function appendSegments(list) {
   if (nearBottom) box.scrollTop = box.scrollHeight;
 }
 
+function showJob(job, segs) {
+  setEditing(false);
+  $("search").value = ""; $("searchCount").textContent = "";
+  state.job = job; state.segs = [];
+  $("transcript").innerHTML = "";
+  $("empty").hidden = true; $("job").hidden = false;
+  appendSegments(segs);
+  renderJob(job);
+}
+
 $("newBtn").onclick = () => {
+  const fromHistory = state.job?.history;
+  setEditing(false);
   state.job = null; state.segs = [];
   $("job").hidden = true; $("empty").hidden = false;
-  $("url").value = ""; setFile(null); $("file").value = "";
+  if (!fromHistory) { $("url").value = ""; setFile(null); $("file").value = ""; }
+  loadHistory();
 };
+
+/* ---------------- search ---------------- */
+
+function applySearch() {
+  const q = $("search").value.trim().toLowerCase();
+  let n = 0;
+  $("transcript").querySelectorAll(".seg-row").forEach((row) => {
+    const p = row.querySelector("p"), text = state.segs[row.dataset.i].text;
+    if (!q) { p.textContent = text; return; }
+    // match on the raw text, then escape each piece, so markup in a transcript can never run
+    const lower = text.toLowerCase();
+    let html = "", from = 0, k;
+    while (lower.length === text.length && (k = lower.indexOf(q, from)) !== -1) {
+      html += esc(text.slice(from, k)) + `<mark>${esc(text.slice(k, k + q.length))}</mark>`;
+      from = k + q.length; n++;
+    }
+    p.innerHTML = html + esc(text.slice(from));
+  });
+  state.hit = -1;
+  $("searchCount").textContent = q ? (n ? tn("matches", n) : t("noMatch")) : "";
+}
+$("search").addEventListener("input", applySearch);
+$("search").addEventListener("keydown", (e) => {  // Enter = next match, Shift+Enter = previous
+  if (e.key !== "Enter") return;
+  e.preventDefault();
+  const marks = [...$("transcript").querySelectorAll("mark")];
+  if (!marks.length) return;
+  marks[state.hit]?.classList.remove("current");
+  state.hit = (state.hit + (e.shiftKey ? -1 : 1) + marks.length) % marks.length;
+  marks[state.hit].classList.add("current");
+  marks[state.hit].scrollIntoView({ block: "center", behavior: "smooth" });
+});
+
+/* ---------------- edit ---------------- */
+
+function setEditing(on) {
+  state.editing = on;
+  $("editBtn").setAttribute("aria-pressed", on);
+  $("editBtn").textContent = on ? t("doneEdit") : t("edit");
+  $("search").disabled = on;
+  if (on) { $("search").value = ""; applySearch(); toast(t("editHint")); }
+  $("transcript").classList.toggle("editing", on);
+  $("transcript").querySelectorAll(".seg-row p").forEach((p) => {
+    if (!on) { p.removeAttribute("contenteditable"); return; }
+    try { p.contentEditable = "plaintext-only"; } catch { p.contentEditable = "true"; }
+  });
+}
+$("editBtn").onclick = () => setEditing(!state.editing);
+$("transcript").addEventListener("keydown", (e) => { if (state.editing && e.key === "Enter") e.preventDefault(); });
+$("transcript").addEventListener("input", (e) => {
+  const row = e.target.closest(".seg-row");
+  if (!state.editing || !row) return;
+  state.segs[row.dataset.i].text = e.target.textContent;
+  clearTimeout(state.saveTimer);
+  state.saveTimer = setTimeout(saveEdits, 600);
+});
+async function saveEdits() {
+  const id = state.job?.id;
+  try {
+    await api(`/api/history/${id}`, { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ texts: state.segs.map((s) => s.text) }) });
+    if (state.job?.id === id) renderJob(state.job);
+  } catch { toast(t("saveFail")); }
+}
+
+/* ---------------- history ---------------- */
+
+async function loadHistory() {
+  try { state.history = await api("/api/history"); } catch { state.history = []; }
+  renderHistory();
+}
+
+function renderHistory() {
+  const list = state.history || [];
+  $("intro").hidden = list.length > 0;
+  $("history").hidden = !list.length;
+  $("historyList").innerHTML = list.map((h) => `<li>
+      <button class="h-open" data-id="${esc(h.id)}">
+        <strong dir="auto">${esc(h.title)}</strong>
+        <span class="h-meta">${[
+          esc(fmtDate(h.created)),
+          h.duration ? `<span dir="ltr">${fmtTime(h.duration, null)}</span>` : "",
+          h.language ? esc(langName(h.language)) : "",
+          tn("words", h.words),
+          h.partial ? t("partial") : "",
+        ].filter(Boolean).join(" · ")}</span>
+        <span class="h-preview" dir="auto">${esc(h.preview)}</span>
+      </button>
+      <button class="ghost del" data-id="${esc(h.id)}">${t("del")}</button>
+    </li>`).join("");
+  $("historyList").querySelectorAll(".h-open").forEach((b) => { b.onclick = () => openHistory(b.dataset.id); });
+  $("historyList").querySelectorAll(".del").forEach((b) => {
+    b.onclick = async () => {
+      if (!b.classList.contains("armed")) {  // two-step, like model delete
+        b.classList.add("armed"); b.textContent = t("confirmDel");
+        setTimeout(() => { b.classList.remove("armed"); b.textContent = t("del"); }, 3000);
+        return;
+      }
+      await api(`/api/history/${b.dataset.id}/delete`, { method: "POST" }).catch(() => {});
+      loadHistory();
+    };
+  });
+}
+
+async function openHistory(id) {
+  const h = await api(`/api/history/${id}`);
+  showJob({ ...h, url: h.source, status: "done", stage: "done", history: true }, h.segments);
+}
 $("tsToggle").onchange = (e) => $("transcript").classList.toggle("plain", !e.target.checked);
 
 /* ---------------- export ---------------- */
@@ -432,8 +582,8 @@ function exportAs(fmt) {
   if (fmt === "srt") return segs.map((s, i) => `${i + 1}\n${fmtTime(s.start, ",", true)} --> ${fmtTime(s.end, ",", true)}\n${s.text}\n`).join("\n");
   if (fmt === "vtt") return "WEBVTT\n\n" + segs.map((s) => `${fmtTime(s.start, ".", true)} --> ${fmtTime(s.end, ".", true)}\n${s.text}\n`).join("\n");
   const j = state.job;
-  return JSON.stringify({ title: j.title, source: j.url, model: j.model, task: j.task, language: j.language,
-    language_probability: j.language_prob, duration: j.duration, segments: segs }, null, 2);
+  return JSON.stringify({ title: j.title, source: j.url, model: j.model, language: j.language,
+    language_probability: j.language_prob, duration: j.duration, created: j.created, segments: segs }, null, 2);
 }
 
 async function save(fmt) {
@@ -474,6 +624,10 @@ async function loadInfo() {
   renderDevice(); renderModels(); renderLanguages();
 }
 
-applyTheme(store.get("sada.theme"));
-applyLang(store.get("sada.lang") || (navigator.language || "en").slice(0, 2));
-loadInfo();
+(async () => {
+  try { Object.assign(prefs, await api("/api/settings")); } catch { /* engine not up yet: defaults */ }
+  applyTheme(store.get("sada.theme"));
+  applyLang(store.get("sada.lang") || (navigator.language || "en").slice(0, 2));
+  loadInfo();
+  loadHistory();
+})();
