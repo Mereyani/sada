@@ -4,6 +4,7 @@ A tiny localhost server (stdlib) + a native window (pywebview, falls back to the
 Links are fetched with yt-dlp, audio is transcribed on-device with faster-whisper.
 """
 import json
+import multiprocessing
 import os
 import queue
 import shutil
@@ -11,15 +12,22 @@ import socket
 import sys
 import tempfile
 import threading
+import time
 import uuid
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from fnmatch import fnmatch
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
-VERSION = "1.0.0"
+VERSION = "1.0.1"
 WEB = Path(getattr(sys, "_MEIPASS", Path(__file__).parent)) / "web"
-TMP = Path(tempfile.mkdtemp(prefix="sada-"))
+# Downloaded/uploaded media lives here only while a job runs. Named per process and created
+# lazily, so child processes (model downloads) never create stray folders.
+TMP = Path(tempfile.gettempdir()) / f"sada-{os.getpid()}"
+STALE_AFTER = 6 * 3600  # leftovers of a crashed run older than this are removed at startup
+# What faster-whisper downloads for a model (mirrors faster_whisper.utils.download_model).
+MODEL_FILES = ["config.json", "preprocessor_config.json", "model.bin", "tokenizer.json", "vocabulary.*"]
 
 # Disk sizes are the CTranslate2 checkpoints on Hugging Face; RAM is what int8 on CPU needs.
 MODELS = [
@@ -30,6 +38,21 @@ MODELS = [
     {"id": "large-v3", "size_mb": 3090, "ram_gb": 6, "quality": 5, "speed": 1},
 ]
 MODEL_IDS = {m["id"] for m in MODELS}
+
+
+def tmp():
+    TMP.mkdir(parents=True, exist_ok=True)
+    return TMP
+
+
+def clean_stale_tmp(now=None):
+    now = now or time.time()
+    for d in Path(tempfile.gettempdir()).glob("sada-*"):
+        try:
+            if d != TMP and d.is_dir() and now - d.stat().st_mtime > STALE_AFTER:
+                shutil.rmtree(d, ignore_errors=True)
+        except OSError:
+            pass
 
 
 def total_ram_gb():
@@ -48,7 +71,7 @@ def total_ram_gb():
             return ms.total / 2**30
         return os.sysconf("SC_PHYS_PAGES") * os.sysconf("SC_PAGE_SIZE") / 2**30
     except (OSError, ValueError, AttributeError):
-        return 8.0
+        return None  # unknown: the UI says so instead of showing a made-up number
 
 
 def cuda_available():
@@ -61,6 +84,7 @@ def cuda_available():
 
 
 def recommend(ram, cuda, cores):
+    ram = ram or 8
     if cuda or (ram >= 16 and cores >= 8):
         return "large-v3-turbo"
     if ram >= 8:
@@ -78,17 +102,60 @@ def is_cached(model_id):
         return False
 
 
+def repo_dir(model_id):
+    from faster_whisper.utils import _MODELS
+    from huggingface_hub.constants import HF_HUB_CACHE
+
+    return Path(HF_HUB_CACHE) / ("models--" + _MODELS[model_id].replace("/", "--"))
+
+
+def shared_refs():
+    """How many model repos link to each blob in the Hugging Face shared store (Xet downloads
+    keep the real file in hub/blobs/ and only a symlink inside the repo)."""
+    from huggingface_hub.constants import HF_HUB_CACHE
+
+    refs = {}
+    for link in Path(HF_HUB_CACHE).glob("models--*/blobs/*"):
+        if link.is_symlink():
+            target = link.resolve()
+            refs[target] = refs.get(target, 0) + 1
+    return refs
+
+
+def own_files(model_id, refs=None):
+    """Files that belong to this model alone: exactly what deleting it removes and frees."""
+    from huggingface_hub.constants import HF_HUB_CACHE
+
+    refs = shared_refs() if refs is None else refs
+    cache = Path(HF_HUB_CACHE).resolve()
+    out = []
+    for f in (repo_dir(model_id) / "blobs").glob("*"):
+        if f.is_symlink():
+            target = f.resolve()
+            if target.is_file() and target.is_relative_to(cache) and refs.get(target) == 1:
+                out.append(target)
+        elif f.is_file():  # includes a partial .incomplete download
+            out.append(f)
+    return out
+
+
+def disk_bytes(model_id, refs=None):
+    return sum(f.stat().st_size for f in own_files(model_id, refs))
+
+
 def system_info():
     from faster_whisper.tokenizer import _LANGUAGE_CODES
 
-    ram, cuda, cores = total_ram_gb(), cuda_available(), os.cpu_count() or 4
+    ram, cuda, threads = total_ram_gb(), cuda_available(), os.cpu_count()
+    refs = shared_refs()
     return {
         "version": VERSION,
-        "ram_gb": round(ram, 1),
-        "cores": cores,
+        "ram_gb": round(ram, 1) if ram else None,
+        "threads": threads,  # logical CPUs (hardware threads), as reported by the OS
         "gpu": cuda,
-        "recommended": recommend(ram, cuda, cores),
-        "models": [{**m, "cached": is_cached(m["id"])} for m in MODELS],
+        "recommended": recommend(ram, cuda, threads or 4),
+        "models": [{**m, "cached": is_cached(m["id"]), "disk_mb": round(disk_bytes(m["id"], refs) / 1e6)}
+                   for m in MODELS],
         "languages": list(_LANGUAGE_CODES),
     }
 
@@ -102,6 +169,53 @@ class Cancelled(Exception):
 jobs = {}
 work = queue.Queue()
 loaded = {"id": None, "model": None}
+
+
+def _fetch(model_id):
+    # Runs in a child process so Stop can end a multi-GB download immediately.
+    os.environ["HF_HUB_DISABLE_XET"] = "1"  # plain HTTP: a growing .incomplete file we can measure
+    from faster_whisper.utils import download_model
+
+    download_model(model_id)
+
+
+def fetch_model(job, model_id):
+    if is_cached(model_id):
+        return
+    from faster_whisper.utils import _MODELS
+    from huggingface_hub import HfApi
+
+    job.update(stage="fetch", progress=0.0)
+    try:
+        info = HfApi().model_info(_MODELS[model_id], files_metadata=True)
+        total = sum(f.size or 0 for f in info.siblings if any(fnmatch(f.rfilename, p) for p in MODEL_FILES))
+    except Exception:
+        total = 0  # progress stays indeterminate, the download itself still runs
+    proc = multiprocessing.get_context("spawn").Process(target=_fetch, args=(model_id,), daemon=True)
+    proc.start()
+    while proc.is_alive():
+        if job["cancel"]:
+            proc.terminate()
+            proc.join()
+            raise Cancelled()
+        if total:
+            job["progress"] = min(0.99, disk_bytes(model_id) / total)
+        proc.join(0.4)
+    if proc.exitcode != 0 or not is_cached(model_id):
+        raise RuntimeError("Could not download the model. Check your internet connection and try again.")
+
+
+def delete_model(model_id):
+    if any(j["model"] == model_id and j["status"] in ("queued", "running") for j in jobs.values()):
+        raise ValueError("model is in use")
+    if loaded["id"] == model_id:
+        loaded.update(id=None, model=None)
+    from huggingface_hub.constants import HF_HUB_CACHE
+
+    for f in own_files(model_id):  # frees shared-store blobs no other model links to
+        f.unlink(missing_ok=True)
+    shutil.rmtree(repo_dir(model_id), ignore_errors=True)
+    shutil.rmtree(Path(HF_HUB_CACHE) / ".locks" / repo_dir(model_id).name, ignore_errors=True)
 
 
 def load_model(model_id):
@@ -138,9 +252,10 @@ def download(job):
         # a single audio stream when the site has one, otherwise the smallest full file;
         # never ask yt-dlp to merge, so no ffmpeg is needed (PyAV decodes everything).
         "format": "bestaudio/best[height<=480]/best",
-        "outtmpl": str(TMP / f"{job['id']}.%(ext)s"),
+        "outtmpl": str(tmp() / f"{job['id']}.%(ext)s"),
         "noplaylist": True,
         "quiet": True,
+        "noprogress": True,
         "no_warnings": True,
         "progress_hooks": [hook],
     }
@@ -159,6 +274,7 @@ def run(job):
             if job["cancel"]:
                 raise Cancelled()
             raise
+    fetch_model(job, job["model"])
     job.update(stage="model", progress=0.0)
     model = load_model(job["model"])
     if job["cancel"]:
@@ -211,6 +327,7 @@ def new_job(opts, url=None, file=None, title=None):
         "task": "translate" if opts.get("task") == "translate" else "transcribe",
         "status": "queued", "stage": "queued", "progress": 0.0, "segments": [],
         "language_prob": None, "duration": None, "error": None, "cancel": False,
+        "fetch": not is_cached(model),  # the model will be downloaded first
     }
     jobs[job["id"]] = job
     work.put(job)
@@ -219,6 +336,7 @@ def new_job(opts, url=None, file=None, title=None):
 
 def public(job, since=0):
     out = {k: v for k, v in job.items() if k not in ("file", "cancel", "segments")}
+    out["stopping"] = job["cancel"] and job["status"] in ("queued", "running")
     out["segments"] = job["segments"][since:]
     out["total_segments"] = len(job["segments"])
     return out
@@ -292,7 +410,7 @@ class Handler(BaseHTTPRequestHandler):
                 if length <= 0:
                     return self.send(400, {"error": "empty file"})
                 name = Path(opts.get("name") or "audio").name
-                dest = TMP / f"{uuid.uuid4().hex}{Path(name).suffix[:10]}"
+                dest = tmp() / f"{uuid.uuid4().hex}{Path(name).suffix[:10]}"
                 with open(dest, "wb") as out:
                     left = length
                     while left:
@@ -302,6 +420,14 @@ class Handler(BaseHTTPRequestHandler):
                         out.write(chunk)
                         left -= len(chunk)
                 return self.send(200, public(new_job(opts, file=str(dest), title=name)))
+            if len(parts) == 4 and parts[:2] == ["api", "models"] and parts[3] == "delete":
+                if parts[2] not in MODEL_IDS:
+                    return self.send(404, {"error": "not found"})
+                try:
+                    delete_model(parts[2])
+                except ValueError as e:
+                    return self.send(409, {"error": str(e)})
+                return self.send(200, {"ok": True})
             if len(parts) == 4 and parts[:2] == ["api", "jobs"] and parts[3] == "cancel":
                 job = jobs.get(parts[2])
                 if not job:
@@ -333,6 +459,10 @@ def free_port():
 
 
 def main():
+    # Windowed builds have no console: give libraries (tqdm, yt-dlp) somewhere harmless to write.
+    sys.stdout = sys.stdout or open(os.devnull, "w")
+    sys.stderr = sys.stderr or open(os.devnull, "w")
+    clean_stale_tmp()
     port = int(os.environ.get("SADA_PORT") or free_port())
     server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
     threading.Thread(target=worker, daemon=True).start()

@@ -20,9 +20,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install -r requirements.txt pyinstaller pillow
+      - run: pip install -r requirements.txt pyinstaller pillow psutil
       - run: python test_app.py
       - run: python build.py
+      # the built app itself: first-run model download, real transcription, Stop, delete,
+      # RAM/thread readout vs psutil. A release is only published if this passes.
+      - run: python smoke_frozen.py
       - uses: actions/upload-artifact@v4
         with:
           name: Sada-${{ matrix.os }}

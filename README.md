@@ -25,6 +25,9 @@ Paste a link from YouTube, TikTok, Instagram, X, Facebook… or drop any video/a
 - **Choose a model for your hardware**: the app reads your RAM/GPU and recommends one.
 - **Live transcript** with timestamps. Export to **TXT, SRT, VTT, JSON** or copy to the clipboard.
 - Voice-activity detection skips silence, which makes transcription faster and cuts hallucinations.
+- **Stop at any time**, even halfway through a multi-GB model download. Settings stay locked while a job runs.
+- **Manage models**: see how much space each downloaded model really uses and delete it with one click. Downloaded or uploaded media is temporary and removed after each job.
+- The device line (RAM, CPU threads, CPU/GPU) is read from your operating system at runtime. Nothing is hard-coded.
 - Interface in **Arabic (RTL), English and Turkish**, with dark and light themes.
 
 | Model | Download | Accuracy | Speed | Good for |
@@ -43,6 +46,13 @@ Get the latest build for your OS from **[Releases](https://github.com/Mereyani/s
 - **Windows**: SmartScreen may warn about an unknown publisher. Click *More info → Run anyway*.
 - **Linux**: if GTK/Qt WebView isn't installed, Sada opens in your default browser instead.
 - **NVIDIA GPU**: used automatically when CUDA 12 + cuDNN 9 are installed. Otherwise Sada runs on the CPU.
+
+### How releases are tested
+Every release is built on GitHub Actions for Windows, macOS (Apple Silicon and Intel) and Linux, and the **built app itself** is then tested on each of them ([smoke_frozen.py](smoke_frozen.py)). Starting from an empty model cache, the test checks the following, and nothing is published unless all of it passes:
+- the model downloads on first use and a real speech clip is transcribed, with the language detected;
+- Stop halts a model download mid-way;
+- deleting a model frees its disk space;
+- the RAM and thread counts match an independent reading from `psutil`.
 
 ### Run from source
 ```bash
@@ -71,6 +81,10 @@ Build a standalone app: `pip install pyinstaller pillow && python build.py`. Pus
 - **كشف تلقائي للغة** من بين 99 لغة، أو اختر اللغة بنفسك. ويمكن أيضاً ترجمة الكلام إلى الإنجليزية.
 - **اختر النموذج المناسب لجهازك**: من Tiny الخفيف جداً إلى Large v3 الأعلى دقة، والتطبيق يقترح الأنسب حسب الذاكرة وكرت الشاشة.
 - نص مباشر مع التوقيت، وتصدير بصيغ **TXT وSRT وVTT وJSON**.
+- **زر إيقاف يعمل في أي لحظة**، حتى في منتصف تنزيل نموذج حجمه عدة غيغابايت. وتبقى الإعدادات مقفلة أثناء التفريغ.
+- **إدارة النماذج**: ترى المساحة الحقيقية لكل نموذج وتحذفه بضغطة. أما ملفات الصوت والفيديو فمؤقتة وتُحذف بعد كل مهمة.
+- سطر الجهاز (الذاكرة وخيوط المعالج والمعالج أو كرت الشاشة) يُقرأ من نظام التشغيل مباشرة، وليس رقماً ثابتاً.
+- قبل نشر أي إصدار تُختبر النسخة المبنية نفسها آلياً على ويندوز وماك ولينكس.
 - واجهة بالعربية والإنجليزية والتركية، مع وضع ليلي ونهاري.
 
 **التشغيل:** حمّل النسخة المناسبة لنظامك من [الإصدارات](https://github.com/Mereyani/sada/releases)، أو شغّله من الكود المصدري بالأوامر الموجودة في القسم الإنجليزي أعلاه. يُنزَّل كل نموذج مرة واحدة عند أول استخدام، وبعدها يعمل التفريغ بدون إنترنت.

@@ -9,7 +9,10 @@ const I18N = {
     dropTitle: "Drop a video or audio file", dropSub: "or click to browse · MP4, MKV, MOV, MP3, WAV, M4A, OGG…",
     model: "Model", recommended: "Recommended", ready: "Downloaded", heavy: "Heavy for this device",
     oneTime: "{size} · one-time download", accuracy: "Accuracy", speed: "Speed",
-    device: "{ram} GB RAM · {cores} threads · {hw}", gpu: "NVIDIA GPU", cpu: "CPU",
+    ramGB: "{ram} GB RAM", ramUnknown: "RAM unknown", threadsN: "{n} CPU threads", runsOn: "runs on {hw}", gpu: "NVIDIA GPU", cpu: "CPU",
+    stop: "Stop", stopping: "Stopping…", fetch: "Downloading model",
+    storage: "Models on this computer · {size}", storageHint: "Delete a model to free space. It downloads again if you use it later.",
+    del: "Delete", confirmDel: "Confirm", partial: "incomplete", deleted: "Model deleted", inUse: "This model is in use right now",
     "m.tiny": "Fastest — weak devices and quick drafts",
     "m.base": "Light and quick, fair accuracy",
     "m.small": "Balanced — great for most laptops",
@@ -40,7 +43,10 @@ const I18N = {
     dropTitle: "اسحب ملف فيديو أو صوت إلى هنا", dropSub: "أو انقر للاختيار · MP4, MKV, MOV, MP3, WAV, M4A, OGG…",
     model: "النموذج", recommended: "موصى به", ready: "مُنزَّل", heavy: "ثقيل على هذا الجهاز",
     oneTime: "{size} · تنزيل لمرة واحدة", accuracy: "الدقة", speed: "السرعة",
-    device: "{ram} GB ذاكرة · {cores} أنوية · {hw}", gpu: "بطاقة NVIDIA", cpu: "المعالج",
+    ramGB: "ذاكرة {ram} GB", ramUnknown: "الذاكرة غير معروفة", threadsN: "{n} خيط معالجة", runsOn: "يعمل على {hw}", gpu: "بطاقة NVIDIA", cpu: "المعالج",
+    stop: "إيقاف", stopping: "جارٍ الإيقاف…", fetch: "تنزيل النموذج",
+    storage: "النماذج على جهازك · {size}", storageHint: "احذف نموذجاً لتوفير المساحة، ويُنزَّل من جديد إن استخدمته لاحقاً.",
+    del: "حذف", confirmDel: "تأكيد", partial: "غير مكتمل", deleted: "حُذف النموذج", inUse: "هذا النموذج قيد الاستخدام الآن",
     "m.tiny": "الأسرع — للأجهزة الضعيفة والمسودات السريعة",
     "m.base": "خفيف وسريع بدقة مقبولة",
     "m.small": "متوازن — ممتاز لمعظم الحواسيب",
@@ -71,7 +77,10 @@ const I18N = {
     dropTitle: "Video veya ses dosyası bırakın", dropSub: "ya da seçmek için tıklayın · MP4, MKV, MOV, MP3, WAV, M4A, OGG…",
     model: "Model", recommended: "Önerilen", ready: "İndirildi", heavy: "Bu cihaz için ağır",
     oneTime: "{size} · tek seferlik indirme", accuracy: "Doğruluk", speed: "Hız",
-    device: "{ram} GB RAM · {cores} iş parçacığı · {hw}", gpu: "NVIDIA GPU", cpu: "CPU",
+    ramGB: "{ram} GB RAM", ramUnknown: "RAM bilinmiyor", threadsN: "{n} iş parçacığı", runsOn: "{hw} üzerinde", gpu: "NVIDIA GPU", cpu: "CPU",
+    stop: "Durdur", stopping: "Durduruluyor…", fetch: "Model indiriliyor",
+    storage: "Bu bilgisayardaki modeller · {size}", storageHint: "Yer açmak için bir modeli silin. Tekrar kullanırsanız yeniden indirilir.",
+    del: "Sil", confirmDel: "Onayla", partial: "yarım", deleted: "Model silindi", inUse: "Bu model şu anda kullanılıyor",
     "m.tiny": "En hızlı — zayıf cihazlar ve hızlı taslaklar",
     "m.base": "Hafif ve hızlı, makul doğruluk",
     "m.small": "Dengeli — çoğu dizüstü için ideal",
@@ -102,7 +111,7 @@ const store = {
   get(k) { try { return localStorage.getItem(k); } catch { return null; } },
   set(k, v) { try { localStorage.setItem(k, v); } catch { /* private mode */ } },
 };
-const state = { lang: "en", info: null, model: null, tab: "link", file: null, job: null, segs: [], timer: null };
+const state = { lang: "en", info: null, model: null, tab: "link", file: null, job: null, segs: [], timer: null, busy: false };
 
 function t(key, vars = {}) {
   const s = I18N[state.lang][key] ?? I18N.en[key] ?? key;
@@ -147,6 +156,7 @@ function applyLang(lang) {
   document.querySelectorAll("#uiLang button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.lang === state.lang));
   $("themeBtn").setAttribute("aria-label", t("theme"));
   if (state.info) { renderDevice(); renderModels(); renderLanguages(); }
+  renderStartBtn();
   if (state.job) renderJob(state.job);
 }
 
@@ -167,7 +177,11 @@ document.querySelectorAll("#uiLang button").forEach((b) => { b.onclick = () => a
 
 function renderDevice() {
   const i = state.info;
-  $("device").textContent = t("device", { ram: Math.round(i.ram_gb), cores: i.cores, hw: i.gpu ? t("gpu") : t("cpu") });
+  $("device").textContent = [
+    i.ram_gb ? t("ramGB", { ram: Math.round(i.ram_gb) }) : t("ramUnknown"),
+    i.threads ? t("threadsN", { n: i.threads }) : "",
+    t("runsOn", { hw: i.gpu ? t("gpu") : t("cpu") }),
+  ].filter(Boolean).join(" · ");
 }
 
 function meter(label, n, cls) {
@@ -180,9 +194,9 @@ function renderModels() {
     const badges = [
       m.id === i.recommended ? `<span class="badge">${t("recommended")}</span>` : "",
       m.cached ? `<span class="badge ok">${t("ready")}</span>` : "",
-      !i.gpu && m.ram_gb * 2 > i.ram_gb ? `<span class="badge warn">${t("heavy")}</span>` : "",
+      !i.gpu && i.ram_gb && m.ram_gb * 2 > i.ram_gb ? `<span class="badge warn">${t("heavy")}</span>` : "",
     ].join("");
-    return `<button class="model" role="radio" aria-checked="${m.id === state.model}" data-id="${m.id}">
+    return `<button class="model" role="radio" aria-checked="${m.id === state.model}" data-id="${m.id}" ${state.busy ? "disabled" : ""}>
       <span class="radio" aria-hidden="true"></span>
       <span class="model-name">${MODEL_NAMES[m.id]} ${badges}</span>
       <span class="model-side">${meter(t("accuracy"), m.quality, "")}${meter(t("speed"), m.speed, "speed")}
@@ -193,6 +207,56 @@ function renderModels() {
   $("models").querySelectorAll(".model").forEach((b) => {
     b.onclick = () => { state.model = b.dataset.id; store.set("sada.model", state.model); renderModels(); };
   });
+  renderStorage();
+}
+
+function renderStorage() {
+  const onDisk = state.info.models.filter((m) => m.disk_mb > 0);
+  $("storage").hidden = !onDisk.length;
+  $("storageSum").textContent = t("storage", { size: fmtSize(onDisk.reduce((n, m) => n + m.disk_mb, 0)) });
+  $("storageList").innerHTML = onDisk.map((m) => `<li>
+      <span>${MODEL_NAMES[m.id]}${m.cached ? "" : ` <em>(${t("partial")})</em>`}</span>
+      <span class="size" dir="ltr">${fmtSize(m.disk_mb)}</span>
+      <button class="ghost del" data-id="${m.id}" ${state.busy ? "disabled" : ""}>${t("del")}</button>
+    </li>`).join("");
+  $("storageList").querySelectorAll(".del").forEach((b) => {
+    b.onclick = async () => {
+      if (!b.classList.contains("armed")) {  // two-step: first click arms, second deletes
+        b.classList.add("armed"); b.textContent = t("confirmDel");
+        setTimeout(() => { b.classList.remove("armed"); b.textContent = t("del"); }, 3000);
+        return;
+      }
+      try {
+        await api(`/api/models/${b.dataset.id}/delete`, { method: "POST" });
+        toast(t("deleted"));
+      } catch { toast(t("inUse")); }
+      loadInfo();
+    };
+  });
+}
+
+// While a job runs every setting is locked; the pinned button becomes Stop.
+function setBusy(busy) {
+  state.busy = busy;
+  document.querySelector(".side").classList.toggle("busy", busy);
+  document.querySelectorAll(".side input, .side select, .side button:not(#startBtn)").forEach((el) => { el.disabled = busy; });
+  renderStartBtn();
+}
+
+const ICON_MIC = '<path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Zm7 9a7 7 0 0 1-14 0m7 7v2"/>';
+const ICON_STOP = '<rect x="6" y="6" width="12" height="12" rx="2"/>';
+function renderStartBtn() {
+  const b = $("startBtn"), stopping = state.busy && state.job?.stopping;
+  b.classList.toggle("danger", state.busy);
+  b.disabled = Boolean(stopping) || (state.busy && !state.job);
+  b.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true">${state.busy ? ICON_STOP : ICON_MIC}</svg><span>${
+    state.busy ? (stopping ? t("stopping") : t("stop")) : t("start")}</span>`;
+}
+
+async function stop() {
+  if (!state.job) return;
+  state.job.stopping = true; renderStartBtn();
+  await api(`/api/jobs/${state.job.id}/cancel`, { method: "POST" }).catch(() => {});
 }
 
 function renderLanguages() {
@@ -215,7 +279,7 @@ document.querySelectorAll(".tabs button").forEach((b) => {
 $("pasteBtn").onclick = async () => {
   try { $("url").value = (await navigator.clipboard.readText()).trim(); } catch { $("url").focus(); }
 };
-$("url").addEventListener("keydown", (e) => { if (e.key === "Enter") start(); });
+$("url").addEventListener("keydown", (e) => { if (e.key === "Enter" && !state.busy) start(); });
 
 function setFile(f) {
   state.file = f || null;
@@ -226,12 +290,12 @@ $("file").onchange = (e) => setFile(e.target.files[0]);
 const drop = $("drop");
 ["dragenter", "dragover"].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add("over"); }));
 ["dragleave", "drop"].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove("over"); }));
-drop.addEventListener("drop", (e) => setFile(e.dataTransfer.files[0]));
+drop.addEventListener("drop", (e) => { if (!state.busy) setFile(e.dataTransfer.files[0]); });
 // a file dropped anywhere in the window goes to the file tab
 window.addEventListener("dragover", (e) => e.preventDefault());
 window.addEventListener("drop", (e) => {
   e.preventDefault();
-  if (e.target.closest("#drop") || !e.dataTransfer.files[0]) return;
+  if (state.busy || e.target.closest("#drop") || !e.dataTransfer.files[0]) return;
   document.querySelector('.tabs [data-tab="file"]').click();
   setFile(e.dataTransfer.files[0]);
 });
@@ -247,16 +311,16 @@ async function start() {
     if (state.tab === "link") {
       const url = $("url").value.trim();
       if (!/^https?:\/\/\S+$/i.test(url)) return showFormError(t("errUrl"));
-      $("startBtn").disabled = true;
+      setBusy(true);
       job = await api("/api/jobs/url", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url, ...opts }) });
     } else {
       if (!state.file) return showFormError(t("errFile"));
-      $("startBtn").disabled = true;
+      setBusy(true);
       const q = new URLSearchParams({ name: state.file.name, ...opts });
       job = await api(`/api/jobs/file?${q}`, { method: "POST", headers: { "Content-Type": "application/octet-stream" }, body: state.file });
     }
   } catch (e) {
-    $("startBtn").disabled = false;
+    setBusy(false);
     return showFormError(e.message || t("errServer"));
   }
   showFormError("");
@@ -264,9 +328,10 @@ async function start() {
   $("transcript").innerHTML = "";
   $("empty").hidden = true; $("job").hidden = false;
   renderJob(job);
+  renderStartBtn();
   poll();
 }
-$("startBtn").onclick = start;
+$("startBtn").onclick = () => (state.busy ? stop() : start());
 
 async function poll() {
   clearTimeout(state.timer);
@@ -279,7 +344,7 @@ async function poll() {
     state.job = job;
     renderJob(job);
     if (["queued", "running"].includes(job.status)) state.timer = setTimeout(poll, 600);
-    else { $("startBtn").disabled = false; loadInfo(); }
+    else { setBusy(false); loadInfo(); }
   } catch {
     state.timer = setTimeout(poll, 1500);
   }
@@ -288,11 +353,11 @@ async function poll() {
 function renderJob(job) {
   const running = ["queued", "running"].includes(job.status);
   $("jobTitle").textContent = job.title || "";
-  $("cancelBtn").hidden = !running;
   $("newBtn").hidden = running;
 
   const m = state.info?.models.find((x) => x.id === job.model);
-  const steps = [...(job.url ? [["download", t("download")]] : []), ["model", t("load")], ["transcribe", t("transcribing")]];
+  const steps = [...(job.url ? [["download", t("download")]] : []), ...(job.fetch ? [["fetch", t("fetch")]] : []),
+    ["model", t("load")], ["transcribe", t("transcribing")]];
   const order = ["queued", ...steps.map((s) => s[0]), "done"];
   const cur = order.indexOf(job.stage);
   $("steps").innerHTML = steps.map(([k, label]) => {
@@ -302,12 +367,12 @@ function renderJob(job) {
   }).join("");
 
   const stageText = {
-    queued: t("queued"), download: t("download"), model: !m || m.cached ? t("load") : t("loadFirst", { size: fmtSize(m.size_mb) }),
+    queued: t("queued"), download: t("download"), fetch: t("loadFirst", { size: fmtSize(m?.size_mb || 0) }), model: t("load"),
     transcribe: t("transcribing"), done: t("done"),
   }[job.stage];
   const statusText = { cancelled: t("cancelled"), error: t("failed") }[job.status];
-  $("stageText").textContent = statusText || stageText || "";
-  const indet = running && (job.stage === "model" || job.stage === "queued" || (job.stage === "download" && !job.progress));
+  $("stageText").textContent = statusText || (job.stopping ? t("stopping") : stageText) || "";
+  const indet = running && (job.stage === "model" || job.stage === "queued" || (["download", "fetch"].includes(job.stage) && !job.progress));
   $("progress").querySelector(".bar").classList.toggle("indet", indet);
   $("barFill").style.width = `${Math.round((job.progress || 0) * 100)}%`;
   $("pct").textContent = running && !indet ? `${Math.round(job.progress * 100)}%` : "";
@@ -329,6 +394,7 @@ function renderJob(job) {
   const typing = $("transcript").querySelector(".typing");
   if (running && job.stage === "transcribe" && !typing) $("transcript").insertAdjacentHTML("beforeend", '<div class="typing"><i></i><i></i><i></i></div>');
   if (!(running && job.stage === "transcribe") && typing) typing.remove();
+  renderStartBtn();
 }
 
 function appendSegments(list) {
@@ -352,7 +418,6 @@ function appendSegments(list) {
   if (nearBottom) box.scrollTop = box.scrollHeight;
 }
 
-$("cancelBtn").onclick = () => state.job && api(`/api/jobs/${state.job.id}/cancel`, { method: "POST" }).catch(() => {});
 $("newBtn").onclick = () => {
   state.job = null; state.segs = [];
   $("job").hidden = true; $("empty").hidden = false;
