@@ -22,7 +22,7 @@ from fnmatch import fnmatch
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
-VERSION = "1.0.3"
+VERSION = "1.0.4"
 WEB = Path(getattr(sys, "_MEIPASS", Path(__file__).parent)) / "web"
 # Downloaded/uploaded media lives here only while a job runs. Named per process and created
 # lazily, so child processes (model downloads) never create stray folders.
@@ -568,6 +568,12 @@ class Handler(BaseHTTPRequestHandler):
         self.send(404, {"error": "not found"})
 
 
+class Server(ThreadingHTTPServer):
+    # The stdlib default backlog is 5: on Linux, extra simultaneous connections are reset.
+    request_queue_size = 128
+    daemon_threads = True
+
+
 class Api:
     """Exposed to JS inside the native window (window.pywebview.api)."""
 
@@ -593,7 +599,7 @@ def main():
     sys.stderr = sys.stderr or open(os.devnull, "w")
     clean_stale_tmp()
     port = int(os.environ.get("SADA_PORT") or free_port())
-    server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
+    server = Server(("127.0.0.1", port), Handler)
     threading.Thread(target=worker, daemon=True).start()
     threading.Thread(target=server.serve_forever, daemon=True).start()
     url = f"http://127.0.0.1:{port}/"

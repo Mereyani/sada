@@ -5,7 +5,6 @@ import tempfile
 import threading
 import time
 import urllib.request
-from http.server import ThreadingHTTPServer
 
 import app
 
@@ -33,7 +32,7 @@ if __name__ == "__main__":
     assert app.recommend(2, False, 2) == "tiny"
     assert app.recommend(4, True, 4) == "large-v3-turbo"
 
-    srv = ThreadingHTTPServer(("127.0.0.1", 0), app.Handler)
+    srv = app.Server(("127.0.0.1", 0), app.Handler)  # the real server class, backlog included
     port = srv.server_address[1]
     threading.Thread(target=srv.serve_forever, daemon=True).start()
     assert req(port, "/") == 200
