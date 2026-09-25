@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sada — صدى</title>
+<link rel="icon" href="logo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <img src="logo.svg" alt="" width="34" height="34">
+    <div>
+      <div class="brand-name">Sada <span>صدى</span></div>
+      <div class="brand-tag" data-i18n="tagline"></div>
+    </div>
+  </div>
+  <div class="top-actions">
+    <span class="pill local"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5l-8-3Z"/></svg><span data-i18n="local"></span></span>
+    <div class="seg" id="uiLang" role="group" aria-label="Language">
+      <button data-lang="ar" aria-label="العربية" lang="ar">ع</button><button data-lang="en" aria-label="English">EN</button><button data-lang="tr" aria-label="Türkçe" lang="tr">TR</button>
+    </div>
+    <button class="icon-btn" id="themeBtn" aria-label="Theme">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg>
+    </button>
+  </div>
+</header>
+
+<main class="layout">
+  <aside class="panel side">
+    <section>
+      <h2 data-i18n="source"></h2>
+      <div class="tabs" role="tablist">
+        <button role="tab" data-tab="link" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 10a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg><span data-i18n="tabLink"></span></button>
+        <button role="tab" data-tab="file" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0-5 5m5-5 5 5M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg><span data-i18n="tabFile"></span></button>
+      </div>
+
+      <div class="tab-body" id="tab-link">
+        <div class="url-row">
+          <input id="url" type="url" dir="ltr" autocomplete="off" spellcheck="false" data-i18n-ph="linkPh" data-i18n-label="tabLink">
+          <button class="ghost" id="pasteBtn" data-i18n="paste"></button>
+        </div>
+        <p class="hint" data-i18n="linkHint"></p>
+        <div class="sites" aria-hidden="true">YouTube · TikTok · Instagram · X · Facebook · Vimeo · SoundCloud · Reddit · Twitch · +1000</div>
+      </div>
+
+      <div class="tab-body" id="tab-file" hidden>
+        <label class="drop" id="drop">
+          <input id="file" type="file" accept="audio/*,video/*,.mkv,.flv,.opus,.amr,.wma">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V5l12-2v13M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm12-2a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg>
+          <strong data-i18n="dropTitle"></strong>
+          <span data-i18n="dropSub"></span>
+          <em id="fileName" dir="auto"></em>
+        </label>
+      </div>
+    </section>
+
+    <section>
+      <div class="sec-head">
+        <h2 data-i18n="model"></h2>
+        <span class="device" id="device"></span>
+      </div>
+      <div class="models" id="models" role="radiogroup"></div>
+    </section>
+
+    <section class="row2">
+      <label class="field">
+        <span data-i18n="spoken"></span>
+        <select id="language"></select>
+      </label>
+      <label class="field">
+        <span data-i18n="output"></span>
+        <select id="task">
+          <option value="transcribe" data-i18n="transcribe"></option>
+          <option value="translate" data-i18n="translate"></option>
+        </select>
+      </label>
+    </section>
+
+    <div class="side-foot">
+    <button class="primary" id="startBtn">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Zm7 9a7 7 0 0 1-14 0m7 7v2"/></svg>
+      <span data-i18n="start"></span>
+    </button>
+    <p class="error" id="formError" role="alert" hidden></p>
+    </div>
+  </aside>
+
+  <section class="panel main" aria-live="polite">
+    <div class="empty" id="empty">
+      <div class="wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <h3 data-i18n="emptyTitle"></h3>
+      <p data-i18n="emptyBody"></p>
+      <ul class="feats">
+        <li data-i18n="f1"></li><li data-i18n="f2"></li><li data-i18n="f3"></li>
+      </ul>
+    </div>
+
+    <div class="job" id="job" hidden>
+      <div class="job-head">
+        <div class="job-title">
+          <h3 id="jobTitle" dir="auto"></h3>
+          <div class="chips" id="chips"></div>
+        </div>
+        <div class="job-actions">
+          <button class="ghost" id="cancelBtn" data-i18n="cancel"></button>
+          <button class="ghost" id="newBtn" data-i18n="new" hidden></button>
+        </div>
+      </div>
+
+      <div class="progress" id="progress">
+        <ol class="steps" id="steps"></ol>
+        <div class="bar"><div id="barFill"></div></div>
+        <div class="progress-meta"><span id="stageText"></span><span id="pct" dir="ltr"></span></div>
+      </div>
+      <p class="error" id="jobError" role="alert" hidden></p>
+
+      <div class="toolbar" id="toolbar" hidden>
+        <label class="switch"><input type="checkbox" id="tsToggle" checked><span></span><em data-i18n="timestamps"></em></label>
+        <div class="exports">
+          <button class="ghost" id="copyBtn" data-i18n="copy"></button>
+          <button class="ghost" data-fmt="txt">TXT</button>
+          <button class="ghost" data-fmt="srt">SRT</button>
+          <button class="ghost" data-fmt="vtt">VTT</button>
+          <button class="ghost" data-fmt="json">JSON</button>
+        </div>
+      </div>
+
+      <div class="transcript" id="transcript"></div>
+    </div>
+  </section>
+</main>
+<script src="app.js"></script>
+</body>
+</html>
