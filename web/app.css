@@ -58,7 +58,7 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
 .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .brand img { border-radius: 10px; }
 .brand-name { font-weight: 700; font-size: 17px; letter-spacing: -.01em; }
-.brand-name span { color: var(--muted); font-weight: 600; margin-inline-start: 4px; }
+.brand-name span { margin-inline-start: 4px; }  /* same colour and weight as "Sada" */
 .brand-tag { color: var(--muted); font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .top-actions { display: flex; align-items: center; gap: 10px; }
 .pill {
