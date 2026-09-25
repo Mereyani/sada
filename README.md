@@ -99,6 +99,8 @@ Build a standalone app: `pip install pyinstaller pillow && python build.py`. Pus
 
 ## Türkçe
 
+<img src="docs/screenshot-tr.png" alt="Sada — Türkçe arayüz" width="880">
+
 **Sada**, konuşmayı **tamamen bilgisayarınızda** metne çeviren bir masaüstü uygulamasıdır: API yok, hesap yok. Windows, macOS ve Linux'ta çalışır.
 
 - YouTube, TikTok, Instagram, X, Facebook veya 1.000'den fazla siteden **bağlantı** yapıştırın ya da **video/ses dosyası** bırakın.
